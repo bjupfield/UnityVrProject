@@ -5,6 +5,7 @@ public class IceHandler : MonoBehaviour
 {
     MeshFinder instance = new MeshFinder();
     MeshFinder.TirangleApi binstance = new MeshFinder.TirangleApi();
+    public OpenPalmHandler openPalmInfo;
     public GameObject rightHand;
     public GameObject leftHand = null;
     public bool firstStarted = false; //false if left started true if right started
@@ -19,10 +20,14 @@ public class IceHandler : MonoBehaviour
     plane secondDrawPlane;
     Vector3[] objectToCreatePoints = new Vector3[0];
     Vector3[] secondObjectToCreatePoints = new Vector3[0];
-    string[] handPosition;
+    public string[] handPosition;
     string[] handPositionUpdateAfter;
-    string [] leftHandPosition;
+    public string [] leftHandPosition;
     string [] leftHandPositionUpdateAfter;
+    public bool leftOpen;
+    public bool rightOpen;
+    OpenPalmHandler.palmMovement leftOpenPalm;
+    OpenPalmHandler.palmMovement rightOpenPalm;
     class plane{
         public float x;
         public float y;
@@ -40,6 +45,14 @@ public class IceHandler : MonoBehaviour
     class triangulateMesh{
          public Mesh mesh;
          public int initialPointsLength;
+    }
+    public void pullOpenPalmInfo(OpenPalmHandler.palmMovement openPalm, bool which){
+        if(which){
+            leftOpenPalm = openPalm;
+        }
+        else{
+            rightOpenPalm = openPalm;
+        }
     }
     plane createPlane(Vector3 point, Vector3 vector){
         float d = -(-(point.x * vector.x) - (point.y * vector.y) - (point.z * vector.z));
@@ -298,6 +311,12 @@ public class IceHandler : MonoBehaviour
                                     Debug.Log("below 3");
                                 }
                             }
+                        }
+                        if(drawer){
+                            rightOpen = true;
+                        }
+                        else{
+                            leftOpen = true;
                         }
                         rightHand.GetComponent<OpenPalmHandler>().enabled = true;
                     }
