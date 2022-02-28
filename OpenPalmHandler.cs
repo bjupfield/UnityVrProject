@@ -14,7 +14,6 @@ public class OpenPalmHandler : MonoBehaviour
         public Vector3 currMov;
         public bool fin = false;
     }
-    public IceHandler myValues;
     public float testRequiredLength = 0;
     public GameObject leftHand;
     public GameObject rightHand;
@@ -32,6 +31,10 @@ public class OpenPalmHandler : MonoBehaviour
     bool typeChoosen = false;
     bool wroteLeft = false;
     bool wroteRight = false;
+    public bool leftOpen;
+    public bool rightOpen;
+    public bool openTogether;
+
     public palmMovement exportLeft = new palmMovement{
         velocity = new Vector3(0, 0, 0),
         type = "None"
@@ -44,7 +47,7 @@ public class OpenPalmHandler : MonoBehaviour
         leftTime += Time.deltaTime;
     }
     void rightIncrementTime(){
-        leftTime += Time.deltaTime;
+        rightTime += Time.deltaTime;
     }
     void goingForward(palmMovement info, bool which){
     if((which ? stoppedLeft : stoppedRight)){
@@ -106,29 +109,26 @@ public class OpenPalmHandler : MonoBehaviour
                     info.currMov = leftCurrMovement;
                     break;
             }
-            myValues.pullOpenPalmInfo(info, which);
         }
     }
     }
     void check(palmMovement infoLeft, palmMovement infoRight){
-        if(myValues.together){
-            if((wroteLeft && wroteRight) || !(!myValues.leftOpen || !myValues.rightOpen)){
+        if(openTogether){
+            if((wroteLeft && wroteRight) || !(!leftOpen || !rightOpen)){
                 exportLeft.fin = true;
                 exportRight.fin = true;
-                myValues.pullOpenPalmInfo(exportLeft, true);
-                myValues.pullOpenPalmInfo(exportRight, false);
                 //if either the hands arenet moving forward or one hand is turned inactive
             }
         }
         else{
-            if(!wroteLeft || !myValues.leftOpen){
+            if(!wroteLeft || !leftOpen){
                 exportLeft.fin = true;
-                myValues.pullOpenPalmInfo(exportLeft, true);
+                exportLeft.velocity = exportLeft.currMov / Time.deltaTime;
                 //if lefthand is not moving or hand is inactive
             }
-            if(!wroteRight || !myValues.rightOpen){
+            if(!wroteRight || !rightOpen){
                 exportRight.fin = true;
-                myValues.pullOpenPalmInfo(exportRight, false);
+                exportRight.velocity = exportRight.currMov / Time.deltaTime;
                 //if righthand is not moving or hand is inactive
             }
         }
@@ -142,7 +142,7 @@ public class OpenPalmHandler : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(myValues.leftOpen){
+        if(leftOpen){
             leftPalm = -leftHand.transform.right.normalized;
             leftCurrMovement = (leftHand.transform.position - leftPrePos).normalized;
             if(Mathf.Abs((leftPalm + leftCurrMovement).magnitude) >= 1.7f){ //This checks if velocity is reasonably aligned with the direction the palm points
@@ -150,7 +150,7 @@ public class OpenPalmHandler : MonoBehaviour
                 wroteLeft = false;
             }
         }
-        if(myValues.rightOpen){
+        if(rightOpen){
             rightPalm = -rightHand.transform.right.normalized;
             rightCurrMovement = (rightHand.transform.position - rightPrePos).normalized;
             if(Mathf.Abs((rightPalm + rightCurrMovement).magnitude) >= 1.7f){

@@ -5,7 +5,6 @@ public class IceHandler : MonoBehaviour
 {
     MeshFinder instance = new MeshFinder();
     MeshFinder.TirangleApi binstance = new MeshFinder.TirangleApi();
-    public OpenPalmHandler openPalmInfo;
     public GameObject rightHand;
     public GameObject leftHand = null;
     public bool firstStarted = false; //false if left started true if right started
@@ -26,8 +25,21 @@ public class IceHandler : MonoBehaviour
     string [] leftHandPositionUpdateAfter;
     public bool leftOpen;
     public bool rightOpen;
+    public bool firstAdjusting = false; //fasle if left true if right
+    public bool adjustingTogether = false;
+    bool firstInstatiating; //false if left started true if right started
+    bool leftInstatiating;
+    bool rightInstatiating;
+    public OpenPalmHandler openPalmHandler;
     OpenPalmHandler.palmMovement leftOpenPalm;
+    bool opentTogether = false;
+    bool testBoolOpenTogether = false;
+    float testOpenTogether = 0;
     OpenPalmHandler.palmMovement rightOpenPalm;
+    triangulateMesh initialMesh1;
+    triangulateMesh initialMesh2;
+    GameObject firstChanging;
+    GameObject secondChanging;
     class plane{
         public float x;
         public float y;
@@ -45,14 +57,6 @@ public class IceHandler : MonoBehaviour
     class triangulateMesh{
          public Mesh mesh;
          public int initialPointsLength;
-    }
-    public void pullOpenPalmInfo(OpenPalmHandler.palmMovement openPalm, bool which){
-        if(which){
-            leftOpenPalm = openPalm;
-        }
-        else{
-            rightOpenPalm = openPalm;
-        }
     }
     plane createPlane(Vector3 point, Vector3 vector){
         float d = -(-(point.x * vector.x) - (point.y * vector.y) - (point.z * vector.z));
@@ -155,7 +159,7 @@ public class IceHandler : MonoBehaviour
         List<Vector3> meshVertexs = new List<Vector2>(finished.vertices).ConvertAll<Vector3>(new System.Converter<Vector2, Vector3>((xy)=>(new Vector3(xy.x, xy.y, 0))));
         newMesh.vertices = meshVertexs.ToArray();
         newMesh.triangles = finished.triangles;
-        return walllFunction(new triangulateMesh{initialPointsLength = vectorLi.Count, mesh = newMesh});
+        return newMesh;
     }
     void instatiateTestMesh(Mesh mesh, GameObject hand){
         var myObject = new GameObject();
@@ -197,83 +201,131 @@ public class IceHandler : MonoBehaviour
         surface.mesh.triangles = triangleList.ToArray();
         return surface.mesh;
     }
-    void switchForPosition(string[] hndPos, string[] updHndPos, GameObject hand, bool drawer){
+    void switchForPosition(string[] hndPos, string[] updHndPos, GameObject hand, bool drawer, OpenPalmHandler.palmMovement palmMovement){
         if(hndPos[0] == "Ice"){
             switch(hndPos[1]){
                 case "Ice":
-                    if(!wasTogether){ //test if the current hand is active
-                        if(!(drawer ? rightDrawActive : leftDrawActive)){
-                            drawStart(hand, drawer); //this creates the plane and sets which hand created it and so forth
-                            if(drawer){
-                                rightDrawActive = true;
-                            }
-                            else{
-                                leftDrawActive = true;
-                            }
-                        }
-                        drawActive(hand, drawer);
-                    }
-                    else{
-                        Debug.Log("ha no going");
-                    }
+                    // if(!wasTogether){ //test if the current hand is active
+                    //     if(!(drawer ? rightDrawActive : leftDrawActive)){
+                    //         drawStart(hand, drawer); //this creates the plane and sets which hand created it and so forth
+                    //         if(drawer){
+                    //             rightDrawActive = true;
+                    //         }
+                    //         else{
+                    //             leftDrawActive = true;
+                    //         }
+                    //     }
+                    //     drawActive(hand, drawer);
+                    // }
+                    // else{
+                    //     Debug.Log("ha no going");
+                    // }
+                    // currently testing de note when done.
                     break;
                 case "OpenPalm":
-                    if(updHndPos[1] != "OpenPalm" && (drawer ? rightDrawActive : leftDrawActive)){
-                        Debug.Log($"Checking if this is active after the summon");
-                        if(together){
-                            int length = objectToCreatePoints.Length;
-                            int secondLength = secondObjectToCreatePoints.Length;
-                            Vector3[] completedPoints = new Vector3[length + secondLength];
-                            objectToCreatePoints.CopyTo(completedPoints, 0);
-                            Vector3 firstPointFirstArray = objectToCreatePoints[0];
-                            Vector3 firstPointSecondArray = secondObjectToCreatePoints[0];
-                            Vector3 lastPointFirstArray = objectToCreatePoints[length - 1];
-                            Vector3 lastPointSecondArray = secondObjectToCreatePoints[secondLength - 1];
-                            float firstCloser = (Mathf.Abs((firstPointSecondArray  - lastPointFirstArray).magnitude) - Mathf.Abs((firstPointSecondArray  - firstPointFirstArray).magnitude));
-                            float secondCloser = (Mathf.Abs((lastPointSecondArray - lastPointFirstArray).magnitude) - Mathf.Abs((lastPointSecondArray - firstPointFirstArray).magnitude));
-                            if(firstCloser > secondCloser){
-                                Debug.Log("reversed");
-                                System.Array.Reverse(secondObjectToCreatePoints);
-                            }
-                            else if(firstCloser == secondCloser){
-                                if(Mathf.Abs((firstPointSecondArray  - lastPointFirstArray).magnitude) + Mathf.Abs((firstPointSecondArray  - firstPointFirstArray).magnitude) >= Mathf.Abs((lastPointSecondArray - lastPointFirstArray).magnitude) + Mathf.Abs((lastPointSecondArray - firstPointFirstArray).magnitude)){
-                                    Debug.Log("Equaled reversed");
-                                    System.Array.Reverse(secondObjectToCreatePoints);
-                                }
-                            }
-                            secondObjectToCreatePoints.CopyTo(completedPoints, length);
-                            if(completedPoints.Length > 2 ){
-                                foreach(Vector3 z in completedPoints){
-                                    GameObject b = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                                    b.transform.localScale = new Vector3(.01f, .01f, .01f);
-                                    b.transform.position = z;
-                                }
-                                Mesh newMesh = createSurface(completedPoints);
-                                instatiateTestMesh(newMesh, hand);
-                                objectToCreatePoints = new Vector3[0];
-                                secondObjectToCreatePoints = new Vector3[0];
-                                rightDrawActive = false;
-                                leftDrawActive = false;
-                                together = false;
-                                testJoin = false;
-                                timeToJoin = 0;
-                                wasTogether = true;
+                    if((drawer ? rightOpen : leftOpen)){
+                        if(testBoolOpenTogether){
+                            if(testOpenTogether <= 5f){
+                                testOpenTogether += Time.deltaTime;
                             }
                             else{
-                                Debug.Log("below 3");
+                                testBoolOpenTogether = false;
+                            }
+                        }
+                    }
+                    else{
+                        if(testBoolOpenTogether){
+                            opentTogether = true;
+                        }
+                    }
+                    if(together){
+                        testBoolOpenTogether = true;
+                        rightDrawActive = false;
+                        leftDrawActive = false;
+                        together = false;
+                        testJoin = false;
+                        timeToJoin = 0;
+                        wasTogether = true;
+                        //might need to combine the arrays here?
+                    }
+                    if(updHndPos[1] != "OpenPalm"){
+                        if(openPalmHandler.enabled == false){
+                            openPalmHandler.enabled = true;
+                        }
+                    }
+                    if(updHndPos[1] == "Ice"){//means that this came from a draw period and thus we need to set the mesh for intatiating
+                        if((drawer ? leftInstatiating : rightInstatiating)){//this is true if the other hand is instatiating
+                            if(opentTogether){
+                                //do nothing because we dont need another mesh 
+                            }
+                            else{
+                                Mesh funMesh;
+                                if(secondObjectToCreatePoints.Length > 2){
+                                    funMesh = createSurface(secondObjectToCreatePoints);
+                                    secondObjectToCreatePoints = new Vector3[0];
+                                    if(drawer){
+                                        rightDrawActive = false;
+                                    }
+                                    else{
+                                        leftDrawActive = false;
+                                    }
+                                    testJoin = false;
+                                    timeToJoin = 0;
+                                    
+                                }
+                                else{
+                                    funMesh = null;
+                                }
+                                if(firstInstatiating = drawer){
+                                    initialMesh1 = funMesh != null ? new triangulateMesh{
+                                        mesh = funMesh,
+                                        initialPointsLength = funMesh.vertexCount,
+                                    } 
+                                    :
+                                    null
+                                    ;
+                                }
+                                initialMesh2 = new triangulateMesh(){
+
+                                };
                             }
                         }
                         else{
-                            if(drawer == firstStarted){
-                                if(objectToCreatePoints.Length > 2){
-                                    foreach(Vector3 z in objectToCreatePoints){
-                                        GameObject b = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                                        b.transform.localScale = new Vector3(.01f, .01f, .01f);
-                                        b.transform.position = z;
+                            Mesh funmesh;
+                            if(testBoolOpenTogether){//this means its the first one out from drawing together
+                                int length = objectToCreatePoints.Length;
+                                int secondLength = secondObjectToCreatePoints.Length;
+                                Vector3[] completedPoints = new Vector3[length + secondLength];
+                                objectToCreatePoints.CopyTo(completedPoints, 0);
+                                Vector3 firstPointFirstArray = objectToCreatePoints[0];
+                                Vector3 firstPointSecondArray = secondObjectToCreatePoints[0];
+                                Vector3 lastPointFirstArray = objectToCreatePoints[length - 1];
+                                Vector3 lastPointSecondArray = secondObjectToCreatePoints[secondLength - 1];
+                                float firstCloser = (Mathf.Abs((firstPointSecondArray  - lastPointFirstArray).magnitude) - Mathf.Abs((firstPointSecondArray  - firstPointFirstArray).magnitude));
+                                float secondCloser = (Mathf.Abs((lastPointSecondArray - lastPointFirstArray).magnitude) - Mathf.Abs((lastPointSecondArray - firstPointFirstArray).magnitude));
+                                if(firstCloser > secondCloser){
+                                    Debug.Log("reversed");
+                                    System.Array.Reverse(secondObjectToCreatePoints);
+                                }
+                                else if(firstCloser == secondCloser){
+                                    if(Mathf.Abs((firstPointSecondArray  - lastPointFirstArray).magnitude) + Mathf.Abs((firstPointSecondArray  - firstPointFirstArray).magnitude) >= Mathf.Abs((lastPointSecondArray - lastPointFirstArray).magnitude) + Mathf.Abs((lastPointSecondArray - firstPointFirstArray).magnitude)){
+                                        Debug.Log("Equaled reversed");
+                                        System.Array.Reverse(secondObjectToCreatePoints);
                                     }
-                                    Debug.Log(objectToCreatePoints.Length);
-                                    Mesh newMesh = createSurface(objectToCreatePoints);
-                                    instatiateTestMesh(newMesh, hand);
+                                }
+                                secondObjectToCreatePoints.CopyTo(completedPoints, length);
+                                if(completedPoints.Length > 2 ){
+                                    funmesh = createSurface(completedPoints);
+                                    objectToCreatePoints = new Vector3[0];
+                                    secondObjectToCreatePoints = new Vector3[0];
+                                }
+                                else{
+                                    funmesh = null;
+                                }
+                            }
+                            else{
+                                if(objectToCreatePoints.Length > 2){
+                                    funmesh = createSurface(objectToCreatePoints);
                                     objectToCreatePoints = new Vector3[0];
                                     if(drawer){
                                         rightDrawActive = false;
@@ -285,41 +337,199 @@ public class IceHandler : MonoBehaviour
                                     timeToJoin = 0;
                                 }
                                 else{
-                                    Debug.Log("below 3");
+                                    funmesh = null;
+                                }
+                            }
+                            if(funmesh != null){
+                                initialMesh1 = new triangulateMesh(){
+                                    mesh = funmesh,
+                                    initialPointsLength = funmesh.vertexCount,
+                                };
+                            }
+                            else{
+                                initialMesh1 = null;
+                            }
+                            firstInstatiating = drawer;
+                        }
+                        if(drawer){
+                            rightInstatiating = true;
+                        }
+                        else{
+                            leftInstatiating = true;
+                        }
+                    }
+                    openPalmHandler.openTogether = opentTogether;
+                    if(drawer){
+                            rightOpen = true;
+                            openPalmHandler.rightOpen = rightOpen;
+                        }
+                    else{
+                        leftOpen = true;
+                        openPalmHandler.leftOpen = leftOpen;
+                    }
+                    palmMovement = drawer ? openPalmHandler.exportRight : openPalmHandler.exportLeft;
+                    if((drawer ? rightInstatiating : leftInstatiating)){// true if this drawer is initiating
+                        switch(palmMovement.type){
+                            case "None":
+                                Debug.Log("No Curr Type");
+                                break;
+                            case "Lifting":
+                            break;
+                            case "Descending":
+                            break;
+                            case "XZ":
+                            break;
+                        }
+                        if((drawer == firstInstatiating)){
+                            if(opentTogether){
+                                OpenPalmHandler.palmMovement left = openPalmHandler.exportLeft;
+                                OpenPalmHandler.palmMovement right = openPalmHandler.exportRight;
+                                if(left.type != "None" || right.type != "None"){
+                                    leftInstatiating = false;
+                                    rightInstatiating = false;
+                                    firstAdjusting = drawer;
+                                    adjustingTogether = true;
+                                    switch(left.type){
+                                        case "XZ": 
+                                            //create gameobject with the mesh
+                                            break;
+                                        case "Lifting":
+                                            // in these things we need to figure out how we are going to store the info
+                                            break;
+                                        case "Descending":
+
+                                            break;
+                                        case "None":
+
+                                            break;
+                                    };
                                 }
                             }
                             else{
-                                if(secondObjectToCreatePoints.Length > 2){
-                                    foreach(Vector3 z in secondObjectToCreatePoints){
-                                        GameObject b = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                                        b.transform.localScale = new Vector3(.01f, .01f, .01f);
-                                        b.transform.position = z;
-                                    }
-                                    Mesh newMesh = createSurface(secondObjectToCreatePoints);
-                                    instatiateTestMesh(newMesh, hand);
-                                    secondObjectToCreatePoints = new Vector3[0];
-                                    if(drawer){
-                                        rightDrawActive = false;
-                                    }
-                                    else{
-                                        leftDrawActive = false;
-                                    }
-                                    testJoin = false;
-                                    timeToJoin = 0;
-                                }
-                                else{
-                                    Debug.Log("below 3");
-                                }
+
                             }
                         }
-                        if(drawer){
+                        else{
+                            if(opentTogether){
+                                //do nothing because the other hand will handle it
+                            }
+                            else{
+
+                            }
+                        }
+                    }
+                    else{
+
+                    }
+                    if(updHndPos[1] != "OpenPalm" && (drawer ? rightDrawActive : leftDrawActive)){
+                        Debug.Log($"Checking if this is active after the summon");
+                        // if(together){
+                        //     int length = objectToCreatePoints.Length;
+                        //     int secondLength = secondObjectToCreatePoints.Length;
+                        //     Vector3[] completedPoints = new Vector3[length + secondLength];
+                        //     objectToCreatePoints.CopyTo(completedPoints, 0);
+                        //     Vector3 firstPointFirstArray = objectToCreatePoints[0];
+                        //     Vector3 firstPointSecondArray = secondObjectToCreatePoints[0];
+                        //     Vector3 lastPointFirstArray = objectToCreatePoints[length - 1];
+                        //     Vector3 lastPointSecondArray = secondObjectToCreatePoints[secondLength - 1];
+                        //     float firstCloser = (Mathf.Abs((firstPointSecondArray  - lastPointFirstArray).magnitude) - Mathf.Abs((firstPointSecondArray  - firstPointFirstArray).magnitude));
+                        //     float secondCloser = (Mathf.Abs((lastPointSecondArray - lastPointFirstArray).magnitude) - Mathf.Abs((lastPointSecondArray - firstPointFirstArray).magnitude));
+                        //     if(firstCloser > secondCloser){
+                        //         Debug.Log("reversed");
+                        //         System.Array.Reverse(secondObjectToCreatePoints);
+                        //     }
+                        //     else if(firstCloser == secondCloser){
+                        //         if(Mathf.Abs((firstPointSecondArray  - lastPointFirstArray).magnitude) + Mathf.Abs((firstPointSecondArray  - firstPointFirstArray).magnitude) >= Mathf.Abs((lastPointSecondArray - lastPointFirstArray).magnitude) + Mathf.Abs((lastPointSecondArray - firstPointFirstArray).magnitude)){
+                        //             Debug.Log("Equaled reversed");
+                        //             System.Array.Reverse(secondObjectToCreatePoints);
+                        //         }
+                        //     }
+                        //     secondObjectToCreatePoints.CopyTo(completedPoints, length);
+                        //     if(completedPoints.Length > 2 ){
+                        //         foreach(Vector3 z in completedPoints){
+                        //             GameObject b = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        //             b.transform.localScale = new Vector3(.01f, .01f, .01f);
+                        //             b.transform.position = z;
+                        //         }
+                        //         Mesh newMesh = createSurface(completedPoints);
+                        //         instatiateTestMesh(newMesh, hand);
+                        //         objectToCreatePoints = new Vector3[0];
+                        //         secondObjectToCreatePoints = new Vector3[0];
+                        //         rightDrawActive = false;
+                        //         leftDrawActive = false;
+                        //         together = false;
+                        //         testJoin = false;
+                        //         timeToJoin = 0;
+                        //         wasTogether = true;
+                        //     }
+                        //     else{
+                        //         Debug.Log("below 3");
+                        //     }
+                        // }
+                        // else{
+                        //     if(drawer == firstStarted){
+                        //         if(objectToCreatePoints.Length > 2){
+                        //             foreach(Vector3 z in objectToCreatePoints){
+                        //                 GameObject b = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        //                 b.transform.localScale = new Vector3(.01f, .01f, .01f);
+                        //                 b.transform.position = z;
+                        //             }
+                        //             Debug.Log(objectToCreatePoints.Length);
+                        //             Mesh newMesh = createSurface(objectToCreatePoints);
+                        //             instatiateTestMesh(newMesh, hand);
+                        //             objectToCreatePoints = new Vector3[0];
+                        //             if(drawer){
+                        //                 rightDrawActive = false;
+                        //             }
+                        //             else{
+                        //                 leftDrawActive = false;
+                        //             }
+                        //             testJoin = false;
+                        //             timeToJoin = 0;
+                        //         }
+                        //         else{
+                        //             Debug.Log("below 3");
+                        //         }
+                        //     }
+                        //     else{
+                        //         if(secondObjectToCreatePoints.Length > 2){
+                        //             foreach(Vector3 z in secondObjectToCreatePoints){
+                        //                 GameObject b = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        //                 b.transform.localScale = new Vector3(.01f, .01f, .01f);
+                        //                 b.transform.position = z;
+                        //             }
+                        //             Mesh newMesh = createSurface(secondObjectToCreatePoints);
+                        //             instatiateTestMesh(newMesh, hand);
+                        //             secondObjectToCreatePoints = new Vector3[0];
+                        //             if(drawer){
+                        //                 rightDrawActive = false;
+                        //             }
+                        //             else{
+                        //                 leftDrawActive = false;
+                        //             }
+                        //             testJoin = false;
+                        //             timeToJoin = 0;
+                        //         }
+                        //         else{
+                        //             Debug.Log("below 3");
+                        //         }
+                        //     }
+                        // }
+                        // currently testing de note things above to return to function.
+                        palmMovement = drawer ? openPalmHandler.exportRight : openPalmHandler.exportLeft;
+                        Debug.Log($"Type: {palmMovement.type} | Fin: {palmMovement.fin} ||| StarPos: {palmMovement.startPos} | CurrPos: {palmMovement.currPos} | CurrMov: {palmMovement.currMov} | Velocity: {palmMovement.velocity}");
+                    }
+                    if(drawer){
                             rightOpen = true;
                         }
-                        else{
-                            leftOpen = true;
-                        }
-                        rightHand.GetComponent<OpenPalmHandler>().enabled = true;
+                    else{
+                        leftOpen = true;
                     }
+                    if(openPalmHandler.enabled == false){
+                            openPalmHandler.enabled = true;
+                        }
+                    palmMovement = drawer ? openPalmHandler.exportRight : openPalmHandler.exportLeft;
+                    Debug.Log($"Type: {palmMovement.type} | Fin: {palmMovement.fin} ||| StarPos: {palmMovement.startPos} | CurrPos: {palmMovement.currPos} | CurrMov: {palmMovement.currMov} | Velocity: {palmMovement.velocity}");
                     break;
                 case "ClosedFist":
 
@@ -361,8 +571,8 @@ public class IceHandler : MonoBehaviour
     {
         handPosition = rightHand.GetComponent<HandAccuracyTest>().handPosition;
         leftHandPosition = leftHand.GetComponent<HandAccuracyTest>().handPosition;
-        switchForPosition(handPosition, handPositionUpdateAfter, rightHand, true); //for the right hand
-        switchForPosition(leftHandPosition, leftHandPositionUpdateAfter, leftHand, false); //for the left hand
+        switchForPosition(handPosition, handPositionUpdateAfter, rightHand, true, rightOpenPalm); //for the right hand
+        switchForPosition(leftHandPosition, leftHandPositionUpdateAfter, leftHand, false, leftOpenPalm); //for the left hand
         handPositionUpdateAfter[0] = handPosition[0];
         handPositionUpdateAfter[1] = handPosition[1];
         leftHandPositionUpdateAfter[0] = leftHandPosition[0];
