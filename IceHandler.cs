@@ -166,7 +166,7 @@ public class IceHandler : MonoBehaviour
                     if(drawer == firstStarted){
                         if(objectToCreatePoints.Length > 2){
                             whichone.mesh = createSurface(objectToCreatePoints);
-                            whichone.initialPointsLength = whichone.mesh.vertexCount;
+                            whichone.initialPointsLength = whichone.mesh.vertexCount; //wait im not sure this works but it was this way when my brain got here soo, if it doesnt work simply switch whichone.initialpintslength assignment to befroe createsurface
                             objectToCreatePoints = new Vector3[0];
                         }
                         else{
