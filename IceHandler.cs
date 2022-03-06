@@ -25,29 +25,22 @@ public class IceHandler : MonoBehaviour
     public string [] leftHandPosition;
     string [] leftHandPositionUpdateAfter;
     class Open{
-        public bool openTogetherPossible;
-        public bool openTogether;
-        public float openTogetherTimer;
-        public bool leftOpen;
-        public bool rightOpen;
-        public bool openFirst;
+        public bool openTogetherPossible = false;
+        public bool openTogether =false;
+        public float openTogetherTimer = 0;
+        public bool leftOpen = false;
+        public bool rightOpen = false;
+        public bool openFirst = false; //false if right first
         public triangulateMesh initialMesh1;
         public triangulateMesh initialMesh2;
-        public bool leftState2;
-        public bool rightState2;
-        public bool firstState2;
+        public bool leftState2 = false;
+        public bool rightState2 = false;
+        public bool firstState2 = false; //false if right first
         public GameObject object1;
         public GameObject object2;
         public string object1Type;
         public string object2Type;
     }
-    public bool leftOpen;
-    public bool rightOpen;
-    public bool firstAdjusting = false; //fasle if left true if right
-    public bool adjustingTogether = false;
-    bool firstInstatiating; //false if left started true if right started
-    bool leftInstatiating;
-    bool rightInstatiating;
     public OpenPalmHandler openPalmHandler;
     OpenPalmHandler.palmMovement leftOpenPalm;
     bool opentTogether = false;
@@ -75,20 +68,25 @@ public class IceHandler : MonoBehaviour
     }
     public class triangulateMesh{
          public Mesh mesh;
-         public int initialPointsLength;
+         public int outlineLength;
+         public int surfaceLength;
     }
-    Open openInfo;
-    GameObject openCreationSwitch(triangulateMesh initialMesh, string type){
+    Open openInfo = new Open();
+    public bool leftPalmOpen = false;
+    public bool rightPalmOpen = false;
+    GameObject openCreationSwitch(triangulateMesh initialMesh, string type, GameObject hand){
         GameObject currCreation = new GameObject();
+        currCreation.transform.position = hand.transform.position;
         switch(type){
             case "XZ":
                 currCreation.AddComponent<IceIcicle>();
                 break;
             case "Lifting":
-                triangulateMesh toMake = initialMesh;
                 IceWall c = currCreation.AddComponent<IceWall>();
-                toMake.mesh = c.wallFunction(initialMesh);
+                triangulateMesh toMake = c.wallFunction(initialMesh);
                 c.wallMesh = toMake;
+                currCreation.AddComponent<MeshFilter>().mesh = toMake.mesh;
+                currCreation.AddComponent<MeshRenderer>();
                 break;
             case "Descending":
                 currCreation.AddComponent<IceStallagite>();
@@ -103,13 +101,20 @@ public class IceHandler : MonoBehaviour
                 break;
             case "Lifting":
                 IceWall comp1 = currObject.GetComponent<IceWall>();
+                comp1.readPalmMovement(palm, drawer, hand, looking, head);
                 break;
             case "Descending":
                 IceStallagite comp2 = currObject.GetComponent<IceStallagite>();
                 break;
         }
     }
-    void open(string[] updHndPos, bool drawer){
+    void open(string[] updHndPos, bool drawer, GameObject hand){
+        if(drawer){
+            rightPalmOpen = true;
+        }
+        else{
+            leftPalmOpen = true;
+        }
         OpenPalmHandler.palmMovement currPalm = drawer ? openPalmHandler.exportRight : openPalmHandler.exportLeft;
         if(openInfo.openTogetherPossible && drawer == openInfo.openFirst){
             if(openInfo.openTogetherTimer <= 5f){
@@ -146,15 +151,18 @@ public class IceHandler : MonoBehaviour
                 }
                 secondObjectToCreatePoints.CopyTo(completedPoints, length);
                 if(completedPoints.Length > 2 ){
-                    initialMesh1 = new triangulateMesh();
-                    initialMesh1.mesh = createSurface(completedPoints);
-                    initialMesh1.initialPointsLength = initialMesh1.mesh.vertexCount;
+                    initialMesh1 = createSurface(completedPoints);
+                    GameObject ddd = new GameObject();
+                    ddd.transform.position = hand.transform.position;
+                    ddd.AddComponent<MeshFilter>().mesh = initialMesh1.mesh;
+                    ddd.AddComponent<MeshRenderer>();
                     objectToCreatePoints = new Vector3[0];
                     secondObjectToCreatePoints = new Vector3[0];
                 }
                 else{
                     initialMesh1 = null;
                 }
+                wasTogether = true;
             }
             else{
                 if(openInfo.openTogetherPossible){//the other hand in together has initiated so just set them equal to together
@@ -165,8 +173,7 @@ public class IceHandler : MonoBehaviour
                     triangulateMesh whichone = new triangulateMesh();
                     if(drawer == firstStarted){
                         if(objectToCreatePoints.Length > 2){
-                            whichone.mesh = createSurface(objectToCreatePoints);
-                            whichone.initialPointsLength = whichone.mesh.vertexCount; //wait im not sure this works but it was this way when my brain got here soo, if it doesnt work simply switch whichone.initialpintslength assignment to befroe createsurface
+                            whichone = createSurface(objectToCreatePoints); //wait im not sure this works but it was this way when my brain got here soo, if it doesnt work simply switch whichone.initialpintslength assignment to befroe createsurface
                             objectToCreatePoints = new Vector3[0];
                         }
                         else{
@@ -175,8 +182,7 @@ public class IceHandler : MonoBehaviour
                     }
                     else{
                         if(secondObjectToCreatePoints.Length > 2){
-                            whichone.mesh = createSurface(secondObjectToCreatePoints);
-                            whichone.initialPointsLength = whichone.mesh.vertexCount;
+                            whichone = createSurface(secondObjectToCreatePoints);
                             secondObjectToCreatePoints = new Vector3[0];
                         }
                         else{
@@ -203,13 +209,16 @@ public class IceHandler : MonoBehaviour
             else{
                 openInfo.leftOpen = true;
             }
+            if(openPalmHandler.enabled == false){
+                openPalmHandler.enabled = true;
+            }
         }
         else{
             if((drawer ? openInfo.rightOpen : openInfo.leftOpen)){//this checks if the object has been created or not
                 string type = currPalm.type;
                 if(type != "None"){
                     if(openInfo.openTogether){//means must make object1
-                        openInfo.object1 = openCreationSwitch(initialMesh1, type);
+                        openInfo.object1 = openCreationSwitch(initialMesh1, type, hand);
                         openInfo.rightState2 = true;
                         openInfo.leftState2 = true;
                         openInfo.rightOpen = false;
@@ -229,7 +238,7 @@ public class IceHandler : MonoBehaviour
                             toUse = openInfo.initialMesh2;
                             openInfo.initialMesh2 = null;
                         }
-                        GameObject creation = openCreationSwitch(toUse, type);
+                        GameObject creation = openCreationSwitch(toUse, type, hand);
                         if((drawer ? openInfo.leftState2 : openInfo.rightState2)){//means one of the others is already in this mode.
                             if((drawer == openInfo.firstState2)){//means the other one is using object 2
                                 openInfo.object1 = creation;
@@ -334,7 +343,8 @@ public class IceHandler : MonoBehaviour
             }
         }
     }
-    Mesh createSurface(Vector3[] vects){
+    triangulateMesh createSurface(Vector3[] vects){
+        Debug.Log("Do we get here");
         List<Vector3> vectorList =  new List<Vector3>(vects);
         Vector3 firstPoint = vectorList[0];
         vectorList = vectorList.ConvertAll(new System.Converter<Vector3, Vector3>((point)=>{
@@ -378,7 +388,14 @@ public class IceHandler : MonoBehaviour
         List<Vector3> meshVertexs = new List<Vector2>(finished.vertices).ConvertAll<Vector3>(new System.Converter<Vector2, Vector3>((xy)=>(new Vector3(xy.x, xy.y, 0))));
         newMesh.vertices = meshVertexs.ToArray();
         newMesh.triangles = finished.triangles;
-        return newMesh;
+        return new triangulateMesh(){
+            mesh = new Mesh(){
+                vertices = meshVertexs.ToArray(),
+                triangles = finished.triangles,
+            },
+            surfaceLength = newMesh.vertexCount,
+            outlineLength = vects.Length,
+        };
     }
     void instatiateTestMesh(Mesh mesh, GameObject hand){
         var myObject = new GameObject();
@@ -390,25 +407,25 @@ public class IceHandler : MonoBehaviour
         if(hndPos[0] == "Ice"){
             switch(hndPos[1]){
                 case "Ice":
-                    // if(!wasTogether){ //test if the current hand is active
-                    //     if(!(drawer ? rightDrawActive : leftDrawActive)){
-                    //         drawStart(hand, drawer); //this creates the plane and sets which hand created it and so forth
-                    //         if(drawer){
-                    //             rightDrawActive = true;
-                    //         }
-                    //         else{
-                    //             leftDrawActive = true;
-                    //         }
-                    //     }
-                    //     drawActive(hand, drawer);
-                    // }
-                    // else{
-                    //     Debug.Log("ha no going");
-                    // }
+                    if(!wasTogether){ //test if the current hand is active
+                        if(!(drawer ? rightDrawActive : leftDrawActive)){
+                            drawStart(hand, drawer); //this creates the plane and sets which hand created it and so forth
+                            if(drawer){
+                                rightDrawActive = true;
+                            }
+                            else{
+                                leftDrawActive = true;
+                            }
+                        }
+                        drawActive(hand, drawer);
+                    }
+                    else{
+                        Debug.Log("ha no going");
+                    }
                     // currently testing de note when done.
                     break;
                 case "OpenPalm":
-                    open(updHndPos, drawer);
+                    open(updHndPos, drawer, hand);
                     break;
                 case "ClosedFist":
 
@@ -438,6 +455,14 @@ public class IceHandler : MonoBehaviour
                 wasTogetherTime = 0f;
             }
         }
+        if(hndPos[1] != "OpenPalm"){
+            if(drawer){
+                rightPalmOpen = false;
+            }
+            else{
+                leftPalmOpen = false;
+            }
+        }
     }
     void Start()
     {
@@ -445,6 +470,7 @@ public class IceHandler : MonoBehaviour
         leftHandPosition = leftHand.GetComponent<HandAccuracyTest>().handPosition;
         handPositionUpdateAfter = new string [2]{"", ""};
         leftHandPositionUpdateAfter = new string[2]{"", ""};
+        openPalmHandler = this.gameObject.GetComponent<OpenPalmHandler>();
     }
     void Update()
     {

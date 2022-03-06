@@ -15,25 +15,38 @@ public class IceWall : MonoBehaviour
         public Vector3 righthand;
         public bool rightFirst;//true if right is the first one
         public bool done = false;
-        public float rightTimer;//true if lefthand was further along z in accordance with the object when it reached fin
-        public float leftTimer;
-        public OpenPalmHandler.palmMovement rightPalm;
-        public OpenPalmHandler.palmMovement leftPalm;
+        public float rightTimer = 0;
+        public float leftTimer = 0;
+        public OpenPalmHandler.palmMovement rightPalm = new OpenPalmHandler.palmMovement();
+        public OpenPalmHandler.palmMovement leftPalm = new OpenPalmHandler.palmMovement();
     }
     actionPalmMovement firstAdjustments = new actionPalmMovement(){
         rightFirst = false,
-        rightPalm = null,
-        leftPalm = null,
+        rightPalm = new OpenPalmHandler.palmMovement(),
+        leftPalm = new OpenPalmHandler.palmMovement(),
+        done = false,
     };
     List<actionPalmMovement> furtherAdjustments = new List<actionPalmMovement>();
     // Start is called before the first frame update
-    public Mesh wallFunction(IceHandler.triangulateMesh surface){//this creates the mesh original might need to adjust
+    int comparar2(int x, int y){
+            if(x > y){
+                return 1;
+            }
+            else if(x < y){
+                return -1;
+            }
+            else{
+                return 0;
+            }
+    }
+    public IceHandler.triangulateMesh wallFunction(IceHandler.triangulateMesh surface){//this creates the mesh original might need to adjust
         List<Vector3> vectorList = new List<Vector3>(surface.mesh.vertices).ConvertAll<Vector3>(new System.Converter<Vector3, Vector3>((vector)=>(new Vector3(vector.x, 0, vector.y)))); //converts to a z by x surface instead of x and y
         int length = vectorList.Count;
         for(int b = 0; b < 10; ++b){
-            for(int i = 0; i < surface.initialPointsLength; ++i){
+            float number = b;
+            for(int i = 0; i < surface.outlineLength; ++i){
                 Vector3 outlineVector = vectorList[i];
-                vectorList.Add(new Vector3(outlineVector.x, -b / 10, outlineVector.z));
+                vectorList.Add(new Vector3(outlineVector.x, -number / 10f, outlineVector.z));
             }
         } // adding new vertexes
         List<int> triangleList = new List<int>(surface.mesh.triangles);
@@ -44,26 +57,31 @@ public class IceWall : MonoBehaviour
             triangleList[curr + 2] = reverse1;
         }
         for(int b = 0; b < 10; ++b){
-            for(int i = 0; i < surface.initialPointsLength; ++i){
-                int whichLayer = surface.initialPointsLength * b; // decides where the added vertexes from the loop above are
-                int whereTop = (b > 0 ? length : 0) +  Mathf.Max(b - 1, 0) * surface.initialPointsLength; //decides where the vertexes above the added vertexes are
-                if(i == surface.initialPointsLength - 1){
-                    triangleList.AddRange(new int[]{length + i + whichLayer, i + whereTop, whereTop,});
-                    triangleList.AddRange(new int[]{length + i + whichLayer, whereTop, length + whichLayer});
+            for(int i = 0; i < surface.outlineLength; ++i){
+                int whichLayer = surface.outlineLength * b + surface.surfaceLength; // decides where the added vertexes from the loop above are
+                int whereTop = (b > 0 ? surface.surfaceLength : 0) +  Mathf.Max(b - 1, 0) * surface.outlineLength; //decides where the vertexes above the added vertexes are
+                if(i == surface.outlineLength - 1){
+                    triangleList.AddRange(new int[]{i + whichLayer, i + whereTop, whereTop,});
+                    triangleList.AddRange(new int[]{i + whichLayer, whereTop, whichLayer});
                 }
                 else{
-                    triangleList.AddRange(new int[]{length + i + whichLayer, i + whereTop, i + 1 + whereTop,});
-                    triangleList.AddRange(new int[]{length + i + whichLayer, i + 1 + whereTop, length + i + 1 + whichLayer});
+                    triangleList.AddRange(new int[]{i + whichLayer, i + whereTop, i + 1 + whereTop,});
+                    triangleList.AddRange(new int[]{i + whichLayer, i + 1 + whereTop, i + 1 + whichLayer});
                 }
             }
         }
-        surface.mesh.vertices = vectorList.ToArray();
-        surface.mesh.triangles = triangleList.ToArray();
-        return surface.mesh;
+        Mesh meshToCreateWall = new Mesh();
+        meshToCreateWall.vertices = vectorList.ToArray();
+        meshToCreateWall.triangles = triangleList.ToArray();
+        return new IceHandler.triangulateMesh(){
+            mesh = meshToCreateWall,
+            outlineLength = surface.outlineLength,
+            surfaceLength = surface.surfaceLength,
+        };
     }
-    public void  readPalmMovement(OpenPalmHandler.palmMovement palm, bool which, Vector3 hand, Vector3 looking, Vector3 head){//which is true if right hand false if left hand
+    public void readPalmMovement(OpenPalmHandler.palmMovement palm, bool which, Vector3 hand, Vector3 looking, Vector3 head){//which is true if right hand false if left hand
         if(palm.type != "None"){
-            if(!(which ? firstAdjustments.rightPalm.fin : firstAdjustments.leftPalm.fin) && !firstAdjustments.done){//the hand in firstadjustments is not finished
+            if((which ? !firstAdjustments.rightPalm.fin : !firstAdjustments.leftPalm.fin) && !firstAdjustments.done){//the hand in firstadjustments is not finished
                 if(palm.fin){
                     palm.velocity = (palm.currPos - palm.startPos) / (which  ? firstAdjustments.rightTimer: firstAdjustments.leftTimer);
                 }
@@ -80,26 +98,37 @@ public class IceWall : MonoBehaviour
                 }
                 firstAdjustments.head = head;
                 firstAdjustments.looking = looking;
+                Debug.Log("adjusting first");
             }
             else{
-                actionPalmMovement mostRecentAdjustment = furtherAdjustments.Find(x=> //dont know if im using this right
-                    (which ? x.rightPalm.fin == false : x.leftPalm.fin == false || ((which ? x.leftPalm.fin == false : x.rightPalm.fin == false) && (which ? x.rightPalm == null : x.leftPalm == null)))
-                );// checks if there is one in the list that is currently adjusting this hand, and if not also checks for one where the other hand is adjusting and the current palm is null so it can create a together statement
-                if(mostRecentAdjustment == new actionPalmMovement()){//means there is no recent adjustment and must create new one
+                furtherAdjustments.RemoveAll(x=> x.done == true);
+                actionPalmMovement mostRecentAdjustment = which ? furtherAdjustments.Find(x=>{
+                    // Debug.Log(x.rightPalm.fin);                    
+                    return x.rightPalm.fin != true;
+                    
+                }) : furtherAdjustments.Find(x=> {
+                    // Debug.Log(x.leftPalm.fin);
+                    return x.leftPalm.fin != true;
+                    }
+                    );// checks if there is one in the list that is currently adjusting this hand, and if not also checks for one where the other hand is adjusting and the current palm is null so it can create a together statement
+                if(mostRecentAdjustment == default(actionPalmMovement)){//means there is no recent adjustment and must create new one
                     furtherAdjustments.Add(new actionPalmMovement(){
                         rightFirst = which,
-                        rightPalm = which ? palm : null,
-                        leftPalm = which ? null : palm,
+                        rightPalm = which ? palm : new OpenPalmHandler.palmMovement(){ fin = false},
+                        leftPalm = which ? new OpenPalmHandler.palmMovement(){fin = false} : palm,
                         head = head,
                         looking = looking,
                     });
+                    Debug.Log(palm.fin);
                 }
                 else{
                     if(which){
+                        Debug.Log("is this true");
                         mostRecentAdjustment.rightPalm = palm;
                         mostRecentAdjustment.righthand = hand;
                     }
                     else{
+                        Debug.Log("is this true");
                         mostRecentAdjustment.leftPalm = palm;
                         mostRecentAdjustment.lefthand = hand;
                     }
@@ -115,9 +144,12 @@ public class IceWall : MonoBehaviour
     void simpleLift(actionPalmMovement lift, bool which){
         OpenPalmHandler.palmMovement mov = which ? lift.rightPalm : lift.leftPalm;
         if(mov.fin){
-            for(int i = 0; i < 11; ++i){//this means all the sides
-                for(int j = wallMesh.initialPointsLength * i; j < wallMesh.initialPointsLength * (i + 1); ++j){
-                    wallMesh.mesh.vertices[j].y += mov.velocity.y * Time.deltaTime; 
+            for(int i = 0; i < wallMesh.surfaceLength; ++i){//for the top
+                wallMesh.mesh.vertices[i].y += mov.velocity.y * Time.deltaTime;
+            }
+            for(int i = 0; i < 10; ++i){//this means all the sides
+                for(int j = wallMesh.surfaceLength + wallMesh.outlineLength * i; j < wallMesh.outlineLength * i + wallMesh.surfaceLength; ++j){
+                    wallMesh.mesh.vertices[j].y += mov.velocity.y * Time.deltaTime * ((1 + i) / 11); 
                 }
             }
             mov.velocity -= mov.velocity * .2f;
@@ -132,12 +164,16 @@ public class IceWall : MonoBehaviour
             }
         }
         else{
-            for(int i = 0; i < 11; ++i){//this means all the sides
-                for(int j = wallMesh.initialPointsLength * i; j < wallMesh.initialPointsLength * (i + 1); ++j){
-                    wallMesh.mesh.vertices[j].y += mov.currMov.y;
+            for(int i = 0; i < wallMesh.surfaceLength; ++i){//for the top
+                wallMesh.mesh.vertices[i].y += mov.velocity.y * Time.deltaTime;
+            }
+            for(int i = 0; i < 10; ++i){//this means all the sides
+                for(int j = wallMesh.surfaceLength + wallMesh.outlineLength * i; j < wallMesh.outlineLength * i + wallMesh.surfaceLength; ++j){
+                    wallMesh.mesh.vertices[j].y += mov.currMov.y * Time.deltaTime * ((1 + i) / 11);
                 }
             }
         }
+        this.gameObject.GetComponent<MeshFilter>().mesh = wallMesh.mesh;
     }
     int comparar(Vector3 x, Vector3 y){
             if(x.z > y.z){
@@ -186,14 +222,14 @@ public class IceWall : MonoBehaviour
             isnoteven = false;
             radius = 0;
         }
-        for(int i = 0; i < wallMesh.initialPointsLength; ++i){//this means for all but the top vertices
+        for(int i = 0; i < wallMesh.surfaceLength; ++i){//this means for all but the top vertices
             wallMesh.mesh.vertices[i].y += isnoteven ? ((2 * circleCenter.y) - Mathf.Sqrt(Mathf.Pow(2 * circleCenter.y, 2) - 4 * (Mathf.Pow(wallMesh.mesh.vertices[i].z, 2) - (2 * wallMesh.mesh.vertices[i].z * circleCenter.z) + Mathf.Pow(wallMesh.mesh.vertices[i].z, 2) + Mathf.Pow(wallMesh.mesh.vertices[i].y, 2) - Mathf.Pow(radius, 2)))) : action.leftPalm.currMov.y;//only adding to z from the amount from radius thing above or simply even
             //above uses the quadratic formula to find the amount to add to each vertex based on their position along the z axis and the derived circle above, or just evenly if is even is true.
             //uses terniary to choose if foreven
         }
-        for(int i = 1; i < 11; ++i){//this means all the sides
-            for(int j = wallMesh.initialPointsLength * i; j < wallMesh.initialPointsLength * (i + 1); ++j){
-               wallMesh.mesh.vertices[j].y += isnoteven ? ((2 * circleCenter.y) - Mathf.Sqrt(Mathf.Pow(2 * circleCenter.y, 2) - 4 * (Mathf.Pow(wallMesh.mesh.vertices[j].z, 2) - (2 * wallMesh.mesh.vertices[j].z * circleCenter.z) + Mathf.Pow(wallMesh.mesh.vertices[j].z, 2) + Mathf.Pow(wallMesh.mesh.vertices[j].y, 2) - Mathf.Pow(radius, 2)))) * (11 / (10 - i)) : action.leftPalm.currMov.y * (11 / (10 - i)); 
+        for(int i = 0; i < 10; ++i){//this means all the sides
+            for(int j = wallMesh.surfaceLength + wallMesh.outlineLength * i; j < wallMesh.outlineLength * i + wallMesh.surfaceLength; ++j){
+               wallMesh.mesh.vertices[j].y += isnoteven ? ((2 * circleCenter.y) - Mathf.Sqrt(Mathf.Pow(2 * circleCenter.y, 2) - 4 * (Mathf.Pow(wallMesh.mesh.vertices[j].z, 2) - (2 * wallMesh.mesh.vertices[j].z * circleCenter.z) + Mathf.Pow(wallMesh.mesh.vertices[j].z, 2) + Mathf.Pow(wallMesh.mesh.vertices[j].y, 2) - Mathf.Pow(radius, 2)))) * ((1 + i) / 11) : action.leftPalm.currMov.y * ((1 + i) / 11); 
             }
         }
         if(action.leftPalm.fin){
@@ -213,6 +249,7 @@ public class IceWall : MonoBehaviour
                 action.done = true;
             }
         }
+        this.gameObject.GetComponent<MeshFilter>().mesh = wallMesh.mesh;
     }
     Vector3 pushing(actionPalmMovement movement, bool which){//which is right if true
         OpenPalmHandler.palmMovement mine = which ? movement.rightPalm : movement.leftPalm;

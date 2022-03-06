@@ -74,7 +74,7 @@ public class OpenPalmHandler : MonoBehaviour
             Vector3 distance = info.currPos - info.startPos;
             float xz = Mathf.Sqrt(Mathf.Pow(distance.x, 2) + Mathf.Pow(distance.z, 2));
             float y = distance.y;
-            if(Mathf.Abs(y / Mathf.Abs(distance.magnitude)) > Mathf.Sin((13f/36f) * Mathf.PI)){
+            if(Mathf.Abs(y / Mathf.Abs(distance.magnitude)) > .8f){
                 if(y > 0){
                     Debug.Log("Lifting Hand Up");
                     Debug.Log(distance);
@@ -137,13 +137,23 @@ public class OpenPalmHandler : MonoBehaviour
     void Start()
     {
         testPointing = -leftHand.transform.right;
+        leftOpen = this.gameObject.GetComponent<IceHandler>().leftPalmOpen;
+        rightOpen = this.gameObject.GetComponent<IceHandler>().rightPalmOpen;
     }
 
     // Update is called once per frame
     void Update()
     {
+        leftOpen = this.gameObject.GetComponent<IceHandler>().leftPalmOpen;
+        rightOpen = this.gameObject.GetComponent<IceHandler>().rightPalmOpen;
+        if(exportLeft.fin){
+            exportLeft = new palmMovement();
+        }
+        if(exportRight.fin){
+            exportRight = new palmMovement();
+        }
         if(leftOpen){
-            leftPalm = -leftHand.transform.right.normalized;
+            leftPalm = leftHand.transform.right.normalized;
             leftCurrMovement = (leftHand.transform.position - leftPrePos).normalized;
             if(Mathf.Abs((leftPalm + leftCurrMovement).magnitude) >= 1.7f){ //This checks if velocity is reasonably aligned with the direction the palm points
                 goingForward(exportLeft, true);
