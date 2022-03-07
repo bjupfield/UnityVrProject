@@ -81,19 +81,8 @@ public class IceWall : MonoBehaviour
     }
     public void readPalmMovement(OpenPalmHandler.palmMovement palm, bool which, Vector3 hand, Vector3 looking, Vector3 head){//which is true if right hand false if left hand
         if(palm.type != "None"){
-            if(firstAdjustments.rightPalm.fin == true){
-            }
             if((which ? !firstAdjustments.rightPalm.fin : !firstAdjustments.leftPalm.fin) && !firstAdjustments.done){//the hand in firstadjustments is not finished
-                if(palm.fin){
-                    Debug.Log($"I am here");
-                }
                 if(which){
-                    if(firstAdjustments.rightPalm.fin){
-                        Debug.Log("WhatTheFuck");
-                    }
-                    if(palm.fin){
-                        Debug.Log($"I am here");
-                    }
                     firstAdjustments.rightPalm = new OpenPalmHandler.palmMovement(){
                         velocity = palm.velocity,
                         type = palm.type,
@@ -120,7 +109,6 @@ public class IceWall : MonoBehaviour
                 }
                 firstAdjustments.head = head;
                 firstAdjustments.looking = looking;
-                Debug.Log("adjusting first");
             }
             else{
                 Debug.Log("Adjusting furhter which it should not be doing");
@@ -159,9 +147,6 @@ public class IceWall : MonoBehaviour
                     }
                 }
             }
-        }
-        if(palm.fin){
-            Debug.Log("|||||||||||||||||||||||||||||||||||");
         }
     }
     void simpleLift(actionPalmMovement lift, bool which){

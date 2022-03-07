@@ -434,7 +434,7 @@ public class IceHandler : MonoBehaviour
             }
         }
         else{
-            if(updHndPos[1] == "OpenPalm"){
+            if(updHndPos[1] == "OpenPalm" && (drawer ? leftHandPosition[1] != "OpenPalm" : handPosition[1] != "OpenPalm")){
                 rightHand.GetComponent<OpenPalmHandler>().enabled = false;
             }
         }
