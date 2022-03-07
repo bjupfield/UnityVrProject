@@ -77,6 +77,7 @@ public class IceHandler : MonoBehaviour
     GameObject openCreationSwitch(triangulateMesh initialMesh, string type, GameObject hand){
         GameObject currCreation = new GameObject();
         currCreation.transform.position = hand.transform.position;
+        Debug.Log("in creation switch");
         switch(type){
             case "XZ":
                 currCreation.AddComponent<IceIcicle>();
@@ -152,10 +153,6 @@ public class IceHandler : MonoBehaviour
                 secondObjectToCreatePoints.CopyTo(completedPoints, length);
                 if(completedPoints.Length > 2 ){
                     initialMesh1 = createSurface(completedPoints);
-                    GameObject ddd = new GameObject();
-                    ddd.transform.position = hand.transform.position;
-                    ddd.AddComponent<MeshFilter>().mesh = initialMesh1.mesh;
-                    ddd.AddComponent<MeshRenderer>();
                     objectToCreatePoints = new Vector3[0];
                     secondObjectToCreatePoints = new Vector3[0];
                 }
@@ -166,6 +163,7 @@ public class IceHandler : MonoBehaviour
             }
             else{
                 if(openInfo.openTogetherPossible){//the other hand in together has initiated so just set them equal to together
+                Debug.Log("OpenTogether occurs");
                     openInfo.openTogether = true;
                     openInfo.openTogetherPossible = false;
                 }
@@ -216,8 +214,9 @@ public class IceHandler : MonoBehaviour
         else{
             if((drawer ? openInfo.rightOpen : openInfo.leftOpen)){//this checks if the object has been created or not
                 string type = currPalm.type;
-                if(type != "None"){
+                if(type != "None" && type != null){
                     if(openInfo.openTogether){//means must make object1
+                        Debug.Log("InOpenTogetherNone");
                         openInfo.object1 = openCreationSwitch(initialMesh1, type, hand);
                         openInfo.rightState2 = true;
                         openInfo.leftState2 = true;
@@ -227,6 +226,8 @@ public class IceHandler : MonoBehaviour
                         openInfo.object1Type = type;
                     }
                     else{
+                        Debug.Log("ElseNone");
+                        Debug.Log(type);
                         triangulateMesh toUse;
                         if(drawer == openInfo.openFirst){
                             //make object from initial mesh1

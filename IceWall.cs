@@ -81,16 +81,38 @@ public class IceWall : MonoBehaviour
     }
     public void readPalmMovement(OpenPalmHandler.palmMovement palm, bool which, Vector3 hand, Vector3 looking, Vector3 head){//which is true if right hand false if left hand
         if(palm.type != "None"){
+            if(firstAdjustments.rightPalm.fin == true){
+            }
             if((which ? !firstAdjustments.rightPalm.fin : !firstAdjustments.leftPalm.fin) && !firstAdjustments.done){//the hand in firstadjustments is not finished
                 if(palm.fin){
-                    palm.velocity = (palm.currPos - palm.startPos) / (which  ? firstAdjustments.rightTimer: firstAdjustments.leftTimer);
+                    Debug.Log($"I am here");
                 }
                 if(which){
-                    firstAdjustments.rightPalm = palm;
+                    if(firstAdjustments.rightPalm.fin){
+                        Debug.Log("WhatTheFuck");
+                    }
+                    if(palm.fin){
+                        Debug.Log($"I am here");
+                    }
+                    firstAdjustments.rightPalm = new OpenPalmHandler.palmMovement(){
+                        velocity = palm.velocity,
+                        type = palm.type,
+                        currPos = palm.currPos,
+                        startPos = palm.startPos,
+                        currMov = palm.currMov,
+                        fin = palm.fin,
+                    };
                     firstAdjustments.righthand = hand;
                 }
                 else{
-                    firstAdjustments.leftPalm = palm;
+                    firstAdjustments.leftPalm = new OpenPalmHandler.palmMovement(){
+                        velocity = palm.velocity,
+                        type = palm.type,
+                        currPos = palm.currPos,
+                        startPos = palm.startPos,
+                        currMov = palm.currMov,
+                        fin = palm.fin,
+                    };
                     firstAdjustments.lefthand = hand;
                 }
                 if((which ? firstAdjustments.leftPalm : firstAdjustments.rightPalm) != null){// seeing if other one is active
@@ -101,6 +123,7 @@ public class IceWall : MonoBehaviour
                 Debug.Log("adjusting first");
             }
             else{
+                Debug.Log("Adjusting furhter which it should not be doing");
                 furtherAdjustments.RemoveAll(x=> x.done == true);
                 actionPalmMovement mostRecentAdjustment = which ? furtherAdjustments.Find(x=>{
                     // Debug.Log(x.rightPalm.fin);                    
@@ -119,16 +142,13 @@ public class IceWall : MonoBehaviour
                         head = head,
                         looking = looking,
                     });
-                    Debug.Log(palm.fin);
                 }
                 else{
                     if(which){
-                        Debug.Log("is this true");
                         mostRecentAdjustment.rightPalm = palm;
                         mostRecentAdjustment.righthand = hand;
                     }
                     else{
-                        Debug.Log("is this true");
                         mostRecentAdjustment.leftPalm = palm;
                         mostRecentAdjustment.lefthand = hand;
                     }
@@ -139,6 +159,9 @@ public class IceWall : MonoBehaviour
                     }
                 }
             }
+        }
+        if(palm.fin){
+            Debug.Log("|||||||||||||||||||||||||||||||||||");
         }
     }
     void simpleLift(actionPalmMovement lift, bool which){
@@ -173,7 +196,7 @@ public class IceWall : MonoBehaviour
                 }
             }
         }
-        this.gameObject.GetComponent<MeshFilter>().mesh = wallMesh.mesh;
+        Debug.Log("SimpleLift");
     }
     int comparar(Vector3 x, Vector3 y){
             if(x.z > y.z){
@@ -249,7 +272,7 @@ public class IceWall : MonoBehaviour
                 action.done = true;
             }
         }
-        this.gameObject.GetComponent<MeshFilter>().mesh = wallMesh.mesh;
+        Debug.Log("ComplexLift");
     }
     Vector3 pushing(actionPalmMovement movement, bool which){//which is right if true
         OpenPalmHandler.palmMovement mine = which ? movement.rightPalm : movement.leftPalm;
@@ -311,6 +334,7 @@ public class IceWall : MonoBehaviour
         }
         firstAdjustments.leftTimer += Time.deltaTime;
         firstAdjustments.rightTimer += Time.deltaTime;
+        // Debug.Log("first switch both");
     }
     void firstSwitchSingular(actionPalmMovement action, bool which){
         switch(which ? action.rightPalm.type : action.leftPalm.type){
@@ -330,6 +354,7 @@ public class IceWall : MonoBehaviour
         else{
             firstAdjustments.leftTimer += Time.deltaTime;
         }
+        // Debug.Log("first switch singular");
     }
     void subsequentSwitchBoth(actionPalmMovement action){
         string left = action.leftPalm.type;
@@ -340,40 +365,37 @@ public class IceWall : MonoBehaviour
                 this.gameObject.transform.position += toPush;
                 break;
             case "XZLifting": //left pushing right lifting
-                Vector3 toPush1 = (pushing(action, true) + pushing(action, false)) * .7f;
-                this.gameObject.transform.position += toPush1;
+                simpleLift(action, true);
+                this.gameObject.transform.position += pushing(action, false);
                 break;
             case "XZDescending"://left pushing right descending
                 Vector3 toPush2 = (pushing(action, true) + pushing(action, false)) * .7f;
                 this.gameObject.transform.position += toPush2;
                 break;
             case "LiftingXZ"://left lifting right pushing
-                Vector3 toPush3 = (pushing(action, true) + pushing(action, false)) * .7f;
-                this.gameObject.transform.position += toPush3;
+                simpleLift(action, false);
+                this.gameObject.transform.position += pushing(action, true);
                 break;
             case "LiftingLifting"://both lifting
-                Vector3 toPush4 = (pushing(action, true) + pushing(action, false)) * .7f;
-                this.gameObject.transform.position += toPush4;
+                complexLift(action);
                 break;
             case "LiftingDescending"://left lifting right descending
-                Vector3 toPush5 = (pushing(action, true) + pushing(action, false)) * .7f;
-                this.gameObject.transform.position += toPush5;
+                complexLift(action);
                 break;
             case "DescendingXZ"://left descending right pushing
-                Vector3 toPush6 = (pushing(action, true) + pushing(action, false)) * .7f;
-                this.gameObject.transform.position += toPush6;
+                simpleLift(action, false);
+                this.gameObject.transform.position += pushing(action, true);
                 break;
             case "DescendingLifting"://left descending right lifting
-                Vector3 toPush7 = (pushing(action, true) + pushing(action, false)) * .7f;
-                this.gameObject.transform.position += toPush7;
+                complexLift(action);
                 break;
             case "DescendingDescending"://both descending
-                Vector3 toPush8 = (pushing(action, true) + pushing(action, false)) * .7f;
-                this.gameObject.transform.position += toPush8;
+                complexLift(action);
                 break;
         }
         action.leftTimer += Time.deltaTime;
         action.rightTimer += Time.deltaTime;
+        // Debug.Log("subsequent switch");
     }
     void subsequentSwitchSingular(actionPalmMovement action, bool which){//true if right
         switch(which ? action.rightPalm.type : action.leftPalm.type){
@@ -381,10 +403,10 @@ public class IceWall : MonoBehaviour
                 this.gameObject.transform.position += pushing(action, which);
                 break;
             case "Lifting":
-                this.gameObject.transform.position += pushing(action, which);
+                simpleLift(action, which);
                 break;
             case "Descending":
-                this.gameObject.transform.position += pushing(action, which);
+                simpleLift(action, which);
                 break;
         }
         if(which){
@@ -393,6 +415,7 @@ public class IceWall : MonoBehaviour
         else{
             action.leftTimer += Time.deltaTime;
         }
+        // Debug.Log("subsequent singular");
     }
     void firstActions(){
         if(!firstAdjustments.done){
@@ -443,6 +466,7 @@ public class IceWall : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        firstActions();
+        subsequentActions();
     }
 }

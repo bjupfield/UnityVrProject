@@ -14,7 +14,7 @@ public class OpenPalmHandler : MonoBehaviour
         public Vector3 currMov;
         public bool fin = false;
     }
-    public float testRequiredLength = 0;
+    public float testRequiredLength;
     public GameObject leftHand;
     public GameObject rightHand;
     float leftTime = 0;
@@ -35,14 +35,8 @@ public class OpenPalmHandler : MonoBehaviour
     public bool rightOpen;
     public bool openTogether;
 
-    public palmMovement exportLeft = new palmMovement{
-        velocity = new Vector3(0, 0, 0),
-        type = "None"
-    };
-    public palmMovement exportRight = new palmMovement{
-        velocity = new Vector3(0, 0, 0),
-        type = "None"
-    };
+    public palmMovement exportLeft;
+    public palmMovement exportRight;
     void leftIncrementTime(){
         leftTime += Time.deltaTime;
     }
@@ -71,24 +65,31 @@ public class OpenPalmHandler : MonoBehaviour
             rightIncrementTime();
         }
         if(testRequiredLength <= Mathf.Abs((info.currPos - info.startPos).magnitude) && typeChoosen == false){
+            Debug.Log($"Currpos: {info.currPos} || StartPos: {info.startPos}");
             Vector3 distance = info.currPos - info.startPos;
             float xz = Mathf.Sqrt(Mathf.Pow(distance.x, 2) + Mathf.Pow(distance.z, 2));
             float y = distance.y;
-            if(Mathf.Abs(y / Mathf.Abs(distance.magnitude)) > .8f){
+            if(Mathf.Abs(y / Mathf.Abs(distance.magnitude)) > .7f){
                 if(y > 0){
                     Debug.Log("Lifting Hand Up");
                     Debug.Log(distance);
+                    Debug.Log($"Time to Comlpetion: {(which ? rightTime : leftTime)}");
+                    Debug.Log($"Hand {(which ? "Right" : "Left")}");
                     info.type = "Lifting";
                 }
                 else{
                     Debug.Log("Decending Hand");
                     Debug.Log(distance);
+                    Debug.Log($"Time to Comlpetion: {(which ? rightTime : leftTime)}");
+                    Debug.Log($"Hand {(which ? "Right" : "Left")}");
                     info.type = "Descending";
                 }
             }
             else{
                 Debug.Log("Pushing hand on XZ Axis");
                 Debug.Log(distance);
+                Debug.Log($"Time to Comlpetion: {(which ? rightTime : leftTime)}");
+                Debug.Log($"Hand {(which ? "Right" : "Left")}");
                 info.type = "XZ";
             }
             typeChoosen = true;
@@ -114,22 +115,45 @@ public class OpenPalmHandler : MonoBehaviour
     }
     void check(palmMovement infoLeft, palmMovement infoRight){
         if(openTogether){
-            if((wroteLeft && wroteRight) || !(!leftOpen || !rightOpen)){
+            if(((wroteLeft && wroteRight) || !(!leftOpen || !rightOpen)) && (exportRight.type != "None" ||  exportLeft.type != "None")){
                 exportLeft.fin = true;
                 exportRight.fin = true;
+                exportLeft.velocity = exportLeft.currMov / Time.deltaTime;
+                exportRight.velocity = exportLeft.currMov / Time.deltaTime;
                 //if either the hands arenet moving forward or one hand is turned inactive
+                Debug.Log("setting fin true for both");
+            }
+            if(wroteLeft && wroteRight){
+                exportLeft = new palmMovement();
+                exportRight = new palmMovement();
             }
         }
         else{
-            if(!wroteLeft || !leftOpen){
+            if((wroteLeft || !leftOpen) && exportLeft.type != "None"){
                 exportLeft.fin = true;
-                exportLeft.velocity = exportLeft.currMov / Time.deltaTime;
+                exportLeft.velocity = (exportLeft.currPos - exportLeft.startPos) / Time.deltaTime;
                 //if lefthand is not moving or hand is inactive
+                Debug.Log("setting fin true for left");
             }
-            if(!wroteRight || !rightOpen){
+            if((wroteRight || !rightOpen) && exportRight.type != "None"){
                 exportRight.fin = true;
-                exportRight.velocity = exportRight.currMov / Time.deltaTime;
+                exportRight.velocity =  (exportRight.currPos - exportRight.startPos) / Time.deltaTime;
+                Debug.Log("setting fin true for right");
                 //if righthand is not moving or hand is inactive
+            }
+            if(wroteLeft && exportLeft.type == "None"){
+                exportLeft = new palmMovement(){
+                    fin = false,
+                    startPos = leftHand.transform.position,
+                    type = "None"
+                };
+            }
+            if(wroteRight && exportRight.type == "None"){
+                exportRight = new palmMovement(){
+                    fin = false,
+                    startPos = rightHand.transform.position,
+                    type = "None"
+                };
             }
         }
     }
@@ -139,6 +163,16 @@ public class OpenPalmHandler : MonoBehaviour
         testPointing = -leftHand.transform.right;
         leftOpen = this.gameObject.GetComponent<IceHandler>().leftPalmOpen;
         rightOpen = this.gameObject.GetComponent<IceHandler>().rightPalmOpen;
+        exportRight = new palmMovement(){
+            startPos = rightHand.transform.position,
+            fin = false,
+            type = "None"
+        };
+        exportLeft = new palmMovement(){
+            startPos = leftHand.transform.position,
+            fin = false,
+            type = "None"
+        };
     }
 
     // Update is called once per frame
@@ -147,15 +181,25 @@ public class OpenPalmHandler : MonoBehaviour
         leftOpen = this.gameObject.GetComponent<IceHandler>().leftPalmOpen;
         rightOpen = this.gameObject.GetComponent<IceHandler>().rightPalmOpen;
         if(exportLeft.fin){
-            exportLeft = new palmMovement();
+            Debug.Log("Reinitiation occurs");
+            exportLeft = new palmMovement(){
+                startPos = leftHand.transform.position,
+                fin = false,
+                type = "None"
+            };
         }
         if(exportRight.fin){
-            exportRight = new palmMovement();
+            Debug.Log("Reinitiation occurs");
+            exportRight = new palmMovement(){
+                startPos = rightHand.transform.position,
+                fin = false,
+                type = "None"
+            };
         }
         if(leftOpen){
             leftPalm = leftHand.transform.right.normalized;
             leftCurrMovement = (leftHand.transform.position - leftPrePos).normalized;
-            if(Mathf.Abs((leftPalm + leftCurrMovement).magnitude) >= 1.7f){ //This checks if velocity is reasonably aligned with the direction the palm points
+            if(Mathf.Abs((leftPalm + leftCurrMovement).magnitude) >= 1.85f){ //This checks if velocity is reasonably aligned with the direction the palm points
                 goingForward(exportLeft, true);
                 wroteLeft = false;
             }
