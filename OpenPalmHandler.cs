@@ -45,25 +45,25 @@ public class OpenPalmHandler : MonoBehaviour
         rightTime += Time.deltaTime;
     }
     void goingForward(palmMovement info, bool which){
-    if((which ? stoppedLeft : stoppedRight)){
+    if((which ? stoppedRight : stoppedLeft)){
         info.startPos = which ? rightHand.transform.position : leftHand.transform.position;
         info.currPos = which ? rightHand.transform.position : leftHand.transform.position;
         if(which){
-            stoppedLeft = false;
-            leftIncrementTime();    
+            stoppedRight = false;
+            rightIncrementTime();    
         }
         else{
-            stoppedRight = false;
-            rightIncrementTime();
+            stoppedLeft = false;
+            leftIncrementTime();
         }
     }  
     else{
         info.currPos= which ? rightHand.transform.position : leftHand.transform.position;
         if(which){
-            leftIncrementTime();
-        }
-        else{
             rightIncrementTime();
+            }
+        else{
+            leftIncrementTime();
         }
         if(testRequiredLength <= Mathf.Abs((info.currPos - info.startPos).magnitude) && (which ? rightTypeChoosen == false : leftTypeChoosen == false)){
             Debug.Log($"{(which ? "Right" : "Left")} reached acceptable magnitude");
@@ -116,6 +116,12 @@ public class OpenPalmHandler : MonoBehaviour
                     info.currMov = leftCurrMovement;
                     break;
             }
+            if(which){
+                rightIncrementTime();
+            }
+            else{
+                leftIncrementTime();
+            }
         }
         // Debug.Log($"{(which ? "RightHand" : "LeftHand")} || CurrMove: {info.currMov} | CurrPos: {info.currPos} | StartPos: {info.startPos} | Fin: {info.fin} | Type: {info.type} | Velocity: {info.velocity} ||");
     }
@@ -125,31 +131,34 @@ public class OpenPalmHandler : MonoBehaviour
             if(((wroteLeft && wroteRight) || !(!leftOpen || !rightOpen)) && (exportRight.type != "None" ||  exportLeft.type != "None")){
                 exportLeft.fin = true;
                 exportRight.fin = true;
-                exportLeft.velocity = exportLeft.currMov / Time.deltaTime;
-                exportRight.velocity = exportLeft.currMov / Time.deltaTime;
+                exportLeft.velocity = exportLeft.currMov / leftTime;
+                exportRight.velocity = exportRight.currMov / rightTime;
                 //if either the hands arenet moving forward or one hand is turned inactive
-                Debug.Log("setting fin true for both");
             }
             if(wroteLeft && wroteRight){
                 exportLeft = new palmMovement();
                 exportRight = new palmMovement();
                 leftTypeChoosen = false;
                 rightTypeChoosen = false;
+                leftTime = 0;
+                rightTime = 0;
             }
         }
         else{
             if((wroteLeft || !leftOpen) && exportLeft.type != "None"){
                 exportLeft.fin = true;
-                exportLeft.velocity = (exportLeft.currPos - exportLeft.startPos) / Time.deltaTime;
+                exportLeft.velocity = (exportLeft.currPos - exportLeft.startPos) / leftTime;
+                Debug.Log($"ExportedVelocity: {exportLeft.velocity}");
                 //if lefthand is not moving or hand is inactive
-                Debug.Log("setting fin true for left");
-                Debug.Log($"LeftHand || CurrMove: {exportLeft.currMov} | CurrPos: {exportLeft.currPos} | StartPos: {exportLeft.startPos} | Fin: {exportLeft.fin} | Type: {exportLeft.type} | Velocity: {exportLeft.velocity} ||");
+                // Debug.Log("setting fin true for left");
+                // Debug.Log($"LeftHand || CurrMove: {exportLeft.currMov} | CurrPos: {exportLeft.currPos} | StartPos: {exportLeft.startPos} | Fin: {exportLeft.fin} | Type: {exportLeft.type} | Velocity: {exportLeft.velocity} ||");
             }
             if((wroteRight || !rightOpen) && exportRight.type != "None"){
                 exportRight.fin = true;
-                exportRight.velocity =  (exportRight.currPos - exportRight.startPos) / Time.deltaTime;
-                Debug.Log("setting fin true for right");
-                Debug.Log($"RightHand || CurrMove: {exportRight.currMov} | CurrPos: {exportRight.currPos} | StartPos: {exportRight.startPos} | Fin: {exportRight.fin} | Type: {exportRight.type} | Velocity: {exportRight.velocity} ||");
+                exportRight.velocity =  (exportRight.currPos - exportRight.startPos) / rightTime;
+                Debug.Log($"ExportedVelocity: {exportRight.velocity}");
+                // Debug.Log("setting fin true for right");
+                // Debug.Log($"RightHand || CurrMove: {exportRight.currMov} | CurrPos: {exportRight.currPos} | StartPos: {exportRight.startPos} | Fin: {exportRight.fin} | Type: {exportRight.type} | Velocity: {exportRight.velocity} ||");
                 //if righthand is not moving or hand is inactive
             }
             if(wroteLeft && exportLeft.type == "None"){
@@ -159,7 +168,7 @@ public class OpenPalmHandler : MonoBehaviour
                     type = "None"
                 };
                 leftTypeChoosen = false;
-                Debug.Log("reset left");
+                leftTime = 0;
             }
             if(wroteRight && exportRight.type == "None"){
                 exportRight = new palmMovement(){
@@ -168,7 +177,7 @@ public class OpenPalmHandler : MonoBehaviour
                     type = "None"
                 };
                 rightTypeChoosen = false;
-                Debug.Log("reset right");
+                rightTime = 0;
             }
         }
     }
@@ -203,6 +212,7 @@ public class OpenPalmHandler : MonoBehaviour
                 type = "None"
             };
             leftTypeChoosen = false;
+            leftTime = 0;
         }
         if(exportRight.fin){
             Debug.Log("Reinitiation occurs");
@@ -212,6 +222,7 @@ public class OpenPalmHandler : MonoBehaviour
                 type = "None"
             };
             rightTypeChoosen = false;
+            rightTime = 0;
         }
         if(leftOpen){
             leftPalm = leftHand.transform.right.normalized;
