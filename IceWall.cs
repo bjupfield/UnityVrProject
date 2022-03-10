@@ -339,6 +339,7 @@ public class IceWall : MonoBehaviour
         // Debug.Log("first switch both");
     }
     void firstSwitchSingular(actionPalmMovement action, bool which){
+        Debug.Log((which ? action.rightPalm.type : action.leftPalm.type));
         switch(which ? action.rightPalm.type : action.leftPalm.type){
             case "XZ":
                 this.gameObject.transform.position += pushing(action, which);
@@ -359,6 +360,8 @@ public class IceWall : MonoBehaviour
         // Debug.Log("first switch singular");
     }
     void subsequentSwitchBoth(actionPalmMovement action){
+        Debug.Log(action.leftPalm.type);
+        Debug.Log(action.rightPalm.type);
         string left = action.leftPalm.type;
         string right = action.rightPalm.type;
         switch(left + right){
@@ -422,7 +425,7 @@ public class IceWall : MonoBehaviour
     void firstActions(){
         if(!firstAdjustments.done){
             if(firstAdjustments.rightFirst){//this means the rightpalm is the first active
-                if(firstAdjustments.leftPalm.type != "None"){//this means both are active
+                if(firstAdjustments.leftPalm.type != "None" && firstAdjustments.leftPalm.type != null){//this means both are active
                     firstSwitchBoth(firstAdjustments);
                 }
                 else{//only rightpalm is active
@@ -430,7 +433,7 @@ public class IceWall : MonoBehaviour
                 }
             }
             else{//this means the leftpalm is the first active
-                if(firstAdjustments.rightPalm.type != "None"){//this means both are active
+                if(firstAdjustments.rightPalm.type != "None" && firstAdjustments.rightPalm.type != null){//this means both are active
                     firstSwitchBoth(firstAdjustments);
                 }
                 else{//only leftpalm is active
@@ -443,7 +446,7 @@ public class IceWall : MonoBehaviour
         List<actionPalmMovement> actions = furtherAdjustments.FindAll(x=> x.done == false);
         actions.ForEach(x=>{
             if(x.rightFirst){//this means the rightpalm is first active
-                if(x.leftPalm.type != "None"){//this means both are active
+                if(x.leftPalm.type != "None" && firstAdjustments.leftPalm.type != null){//this means both are active
                     subsequentSwitchBoth(x);
                 }
                 else{//only rightpalm is active
@@ -451,7 +454,7 @@ public class IceWall : MonoBehaviour
                 }
             }
             else{
-                if(x.rightPalm.type != "None"){//this means both are active
+                if(x.rightPalm.type != "None" && firstAdjustments.rightPalm.type != null){//this means both are active
                     subsequentSwitchBoth(x);
                 }
                 else{//only leftpalm is active
@@ -459,6 +462,7 @@ public class IceWall : MonoBehaviour
                 }
             }
         });
+        Debug.Log(actions.Count);
     }
     void Start()
     {
