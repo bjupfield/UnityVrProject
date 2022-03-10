@@ -41,6 +41,7 @@ public class IceWall : MonoBehaviour
     }
     public IceHandler.triangulateMesh wallFunction(IceHandler.triangulateMesh surface){//this creates the mesh original might need to adjust
         List<Vector3> vectorList = new List<Vector3>(surface.mesh.vertices).ConvertAll<Vector3>(new System.Converter<Vector3, Vector3>((vector)=>(new Vector3(vector.x, 0, vector.y)))); //converts to a z by x surface instead of x and y
+        int length = vectorList.Count;
         for(int b = 0; b < 10; ++b){
             float number = b;
             for(int i = 0; i < surface.outlineLength; ++i){
@@ -184,6 +185,9 @@ public class IceWall : MonoBehaviour
             }
         }
         wallMesh.mesh.vertices = newVertexes;
+        Debug.Log($"SimpleLift || Up by {(mov.fin ? mov.velocity.y * Time.deltaTime : mov.currMov.y)} || Fin {mov.fin} || Done?: {lift.done}");
+        Debug.Log("After: " + wallMesh.mesh.vertices[0].y);
+        Debug.Log($"Added Together{(mov.fin ? mov.velocity.y * Time.deltaTime : mov.currMov.y) + wallMesh.mesh.vertices[0].y}");
     }
     int comparar(Vector3 x, Vector3 y){
             if(x.z > y.z){
@@ -209,6 +213,8 @@ public class IceWall : MonoBehaviour
         b.Sort(comparar);
         float furthestZ = b[b.Count - 1].z;
         float closestZ = b[0].z;
+        int furthestIndex = new List<Vector3>(wallMesh.mesh.vertices).FindIndex(x => x.z == furthestZ);
+        int closestIndex = new List<Vector3>(wallMesh.mesh.vertices).FindIndex(x => x.z == closestZ);
         float m = furthestZ - closestZ == 0 ? 0 : (zFurther.y - zShorter.y) / (furthestZ - closestZ);
         bool isnoteven = m == 0 ? false : true;
         // if(zFurther > zShorter){
@@ -267,6 +273,7 @@ public class IceWall : MonoBehaviour
             }
         }
         wallMesh.mesh.vertices = newVertices;
+        Debug.Log($"ComplexLift || Further {newVertices[furthestIndex].y} | Closer {newVertices[closestIndex].y}");
     }
     Vector3 pushing(actionPalmMovement movement, bool which){//which is right if true
         OpenPalmHandler.palmMovement mine = which ? movement.rightPalm : movement.leftPalm;

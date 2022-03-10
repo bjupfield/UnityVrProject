@@ -345,6 +345,7 @@ public class IceHandler : MonoBehaviour
         }
     }
     triangulateMesh createSurface(Vector3[] vects){
+        Debug.Log("Do we get here");
         List<Vector3> vectorList =  new List<Vector3>(vects);
         Vector3 firstPoint = vectorList[0];
         vectorList = vectorList.ConvertAll(new System.Converter<Vector3, Vector3>((point)=>{
